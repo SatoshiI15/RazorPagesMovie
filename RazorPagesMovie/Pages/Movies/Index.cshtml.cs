@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc.RazorPages;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using RazorPagesMovie.Models;
 
@@ -13,16 +15,34 @@ namespace RazorPagesMovie.Pages.Movies
             _context = context;
         }
 
-        public IList<Movie> Movie { get;set; } = default!;
+        public IList<Movie> Movie { get; set; } = default!;
 
-        //Returns a list of movies to the Razor Page, when a GET request is made for the page
+        [BindProperty(SupportsGet = true)]
+        public string? SearchString { get; set; }
+
+        public SelectList? Genres { get; set; }
+
+        [BindProperty(SupportsGet = true)]
+        public string? MovieGenre { get; set; }
+
+        //Returns a list of movies to the Razor Page, when a GET request is made to the page.
         public async Task OnGetAsync()
         {
-            if (_context.Movie != null)
+            IQueryable<string> genreQuery = from m in _context.Movie
+                                            orderby m.Genre
+                                            select m.Genre;
+            var movies = from m in _context.Movie
+                         select m;
+            if (!string.IsNullOrEmpty(SearchString))
             {
-                Movie = await _context.Movie.ToListAsync();
+                movies = movies.Where(s => s.Title.Contains(SearchString));
             }
+            if (!string.IsNullOrEmpty(MovieGenre))
+            {
+                Movie = await movies.ToListAsync();
+            }
+            Genres = new SelectList(await genreQuery.Distinct().ToListAsync());
+            Movie = await movies.ToListAsync();
         }
     }
 }
- 
